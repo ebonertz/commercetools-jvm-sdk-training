@@ -1,12 +1,14 @@
 package handson;
 
 import com.neovisionaries.i18n.CountryCode;
+import io.sphere.sdk.carts.Cart;
 import io.sphere.sdk.client.BlockingSphereClient;
 import io.sphere.sdk.models.Address;
 import io.sphere.sdk.models.AddressBuilder;
 import io.sphere.sdk.orders.Order;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 import static handson.Commands.*;
@@ -20,14 +22,15 @@ public class Main {
     public static void main(String[] args) throws IOException, ExecutionException, InterruptedException {
 
         try (final BlockingSphereClient client = createSphereClient()){
-
+            List<Cart> cartList = queryAllCarts(client).getResults();
+            deleteCarts(client, cartList);
             setUpProject(client);
 
             final Order order = onlineShop(client);
 
             // .. the order in a microservice, e.g. send confirmation email to the customer.
 
-            cleanUpProject(client, product, taxCategory, cart, order);
+            cleanUpProject(client);
         }
     }
 
@@ -50,16 +53,18 @@ public class Main {
         System.out.println("Product with id " + product.getId() + " is added to cart.");
 
         //3.8. Call setShippingAddress
-        setShippingAddress(client, address, cart);
+        cart = setShippingAddress(client, address, cart);
         System.out.println("Set address to cart with id " + cart.getId());
+
 
         // Checkout process continues...
 
         // When it is confirmed and paid, we create the order
-        //TODO 3.9. Call the method createOrderFromCart
-        //System.out.println("Order with id " + order.getId() + " is added to cart with id " + cart.getId());
+        //3.9. Call the method createOrderFromCart
+        Order order = createOrderFromCart(client,cart);
+        System.out.println("Order with id " + order.getId() + " is added to cart with id " + cart.getId());
 
         //Return order
-        return null;
+        return order;
     }
 }

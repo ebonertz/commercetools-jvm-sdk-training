@@ -228,7 +228,7 @@ public class Commands {
         TaxCategoryQuery request = TaxCategoryQuery.of();
         return client.executeBlocking(request)
                 .head()
-                .orElseGet(()-> createTaxCategory(client, "US Tax", 0.1));
+                .orElseGet(()-> createTaxCategory(client, "US", 0.1));
     }
 
     /**
@@ -369,9 +369,9 @@ public class Commands {
      * @return the created order
      */
     public static Order createOrderFromCart(final BlockingSphereClient client, final Cart cart){
-        //TODO 3.9. Create the command and execute it
-
-        return null;
+        //3.9. Create the command and execute it
+        OrderFromCartCreateCommand command = OrderFromCartCreateCommand.of(cart);
+        return client.executeBlocking(command);
     }
 
     /**
