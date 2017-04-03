@@ -2,6 +2,7 @@ package handson;
 
 import io.sphere.sdk.carts.Cart;
 import io.sphere.sdk.client.BlockingSphereClient;
+import io.sphere.sdk.commands.Command;
 import io.sphere.sdk.orders.Order;
 import io.sphere.sdk.products.Product;
 import io.sphere.sdk.producttypes.ProductType;
@@ -36,15 +37,18 @@ public class Project {
      * @param client CTP client
      */
     public static void setUpProject(final BlockingSphereClient client){
-        //TODO 1.4. Call the methods queryFirstProductType and createProduct
-        //System.out.println("Product type " + productType.getName() + " is queried/created.");
-        //System.out.println("Product with id " + product.getId() + " is created.");
+        // 3.4. Call the methods queryFirstProductType and createProduct
+        ProductType productType = Commands.queryFirstProductType(client);
+        System.out.println("Product type " + productType.getName() + " is queried/created.");
+        product= Commands.createProduct(client,productType, PRODUCT_NAME , PRODUCT_KEY, PRODUCT_SKU);
+        System.out.println("Product with id " + product.getId() + " is created.");
 
-        //TODO 1.5.2. Call queryFirstTaxCategory
-        //System.out.println("Tax category " + taxCategory.getName() + " is selected.");
-
-        //TODO 1.5.4. Call setTaxCategoryWithProductKeyAndVersion
-        //System.out.println("Tax category " + taxCategory.getName() + " is set to " + product.getId());
+        //3.5.2. Call queryFirstTaxCategory
+        taxCategory= Commands.queryFirstTaxCategory(client);
+        System.out.println("Tax category " + taxCategory.getName() + " is selected.");
+        // 3.5.4. Call setTaxCategoryWithProductKeyAndVersion
+        product = Commands.setTaxCategoryWithProductKeyAndVersion(client, product.getKey(), product.getVersion(), taxCategory);
+        System.out.println("Tax category " + taxCategory.getName() + " is set to " + product.getId());
     }
 
     /**
@@ -55,7 +59,6 @@ public class Project {
         List<Product> allProducts = queryAllProducts(client).getResults();
         System.out.println("All products are queried.");
         deleteProducts(client, allProducts);
-
         // deleteProductType(client, productType);
 
         List<TaxCategory> allTaxCategories = queryAllTaxCategories(client).getResults();
@@ -81,6 +84,7 @@ public class Project {
                                       TaxCategory taxCategory,
                                       Cart cart,
                                       Order order) {
+        LOGGER.error("client is" + client);
         deleteProduct(client, product);
         LOGGER.debug("Product with the id {} is deleted", product.getId());
 

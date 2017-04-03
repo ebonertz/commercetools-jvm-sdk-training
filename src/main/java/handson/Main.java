@@ -15,7 +15,7 @@ import static handson.Utils.createSphereClient;
 
 public class Main {
 
-    private static final Address address = AddressBuilder.of(CountryCode.DE).build();
+    private static final Address address = AddressBuilder.of(CountryCode.US).build();
 
     public static void main(String[] args) throws IOException, ExecutionException, InterruptedException {
 
@@ -41,19 +41,22 @@ public class Main {
      * @return The created order
      */
     private static Order onlineShop(final BlockingSphereClient client){
-        //TODO 1.6.2. Call the method queryFirstCart
-        //System.out.println("Cart with id " + cart.getId() + " is queried/created");
+        // 3.6.2. Call the method queryFirstCart
+        cart= queryFirstCart(client);
+        System.out.println("Cart with id " + cart.getId() + " is queried/created");
 
-        //TODO 1.7. Call addProductToCart
-        //System.out.println("Product with id " + product.getId() + " is added to cart.");
+        //3.7. Call addProductToCart
+        cart= addProductToCart(client, product.getId(), cart, 42l);
+        System.out.println("Product with id " + product.getId() + " is added to cart.");
 
-        //TODO 1.8. Call setShippingAddress
-        //System.out.println("Set address to cart with id " + cart.getId());
+        //3.8. Call setShippingAddress
+        setShippingAddress(client, address, cart);
+        System.out.println("Set address to cart with id " + cart.getId());
 
         // Checkout process continues...
 
         // When it is confirmed and paid, we create the order
-        //TODO 1.9. Call the method createOrderFromCart
+        //TODO 3.9. Call the method createOrderFromCart
         //System.out.println("Order with id " + order.getId() + " is added to cart with id " + cart.getId());
 
         //Return order

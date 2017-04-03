@@ -6,22 +6,28 @@ import io.sphere.sdk.carts.CartDraft;
 import io.sphere.sdk.carts.CartDraftBuilder;
 import io.sphere.sdk.carts.commands.CartCreateCommand;
 import io.sphere.sdk.carts.commands.CartDeleteCommand;
+import io.sphere.sdk.carts.commands.CartUpdateCommand;
+import io.sphere.sdk.carts.commands.updateactions.AddLineItem;
+import io.sphere.sdk.carts.commands.updateactions.SetShippingAddress;
 import io.sphere.sdk.carts.queries.CartByIdGet;
 import io.sphere.sdk.carts.queries.CartQuery;
 import io.sphere.sdk.client.BlockingSphereClient;
+import io.sphere.sdk.client.SphereRequest;
+import io.sphere.sdk.commands.UpdateAction;
 import io.sphere.sdk.models.Address;
 import io.sphere.sdk.models.LocalizedString;
 import io.sphere.sdk.orders.Order;
 import io.sphere.sdk.orders.commands.OrderDeleteCommand;
+import io.sphere.sdk.orders.commands.OrderFromCartCreateCommand;
 import io.sphere.sdk.orders.queries.OrderQuery;
-import io.sphere.sdk.products.Product;
-import io.sphere.sdk.products.ProductProjection;
-import io.sphere.sdk.products.ProductVariant;
+import io.sphere.sdk.products.*;
 import io.sphere.sdk.products.attributes.AttributeDefinitionBuilder;
 import io.sphere.sdk.products.attributes.StringAttributeType;
+import io.sphere.sdk.products.commands.ProductCreateCommand;
 import io.sphere.sdk.products.commands.ProductDeleteCommand;
 import io.sphere.sdk.products.commands.ProductUpdateCommand;
 import io.sphere.sdk.products.commands.updateactions.Publish;
+import io.sphere.sdk.products.commands.updateactions.SetTaxCategory;
 import io.sphere.sdk.products.queries.ProductProjectionQuery;
 import io.sphere.sdk.products.queries.ProductProjectionQueryModel;
 import io.sphere.sdk.products.queries.ProductQuery;
@@ -29,6 +35,7 @@ import io.sphere.sdk.producttypes.ProductType;
 import io.sphere.sdk.producttypes.ProductTypeDraft;
 import io.sphere.sdk.producttypes.commands.ProductTypeCreateCommand;
 import io.sphere.sdk.producttypes.commands.ProductTypeDeleteCommand;
+import io.sphere.sdk.producttypes.queries.ProductTypeQuery;
 import io.sphere.sdk.queries.PagedQueryResult;
 import io.sphere.sdk.queries.QueryPredicate;
 import io.sphere.sdk.taxcategories.*;
@@ -36,21 +43,27 @@ import io.sphere.sdk.taxcategories.commands.TaxCategoryCreateCommand;
 import io.sphere.sdk.taxcategories.commands.TaxCategoryDeleteCommand;
 import io.sphere.sdk.taxcategories.queries.TaxCategoryQuery;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.RandomUtils;
 import org.javamoney.moneta.CurrencyUnitBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.money.CurrencyUnit;
+import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
+import static io.sphere.sdk.models.DefaultCurrencyUnits.EUR;
+import static io.sphere.sdk.models.DefaultCurrencyUnits.USD;
+import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.Locale.ENGLISH;
 
 public class Commands {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Commands.class);
-
     private static final String PRODUCT_TYPE_KEY = RandomStringUtils.randomAlphanumeric(10);
     private static  final String PRODUCT_TYPE_NAME = "Mobile Phone";
 
@@ -74,8 +87,11 @@ public class Commands {
      * @return Queried or created product type
      */
     public static ProductType queryFirstProductType(final BlockingSphereClient client) {
-        //TODO 1.2. Query/create a proeduct type
-        return null;
+        //3.2. Query/create a product type
+        ProductTypeQuery request = ProductTypeQuery.of();
+        return client.executeBlocking(request)
+                     .head()
+                     .orElseGet(() -> createProductType(client));
     }
 
     /**
@@ -99,14 +115,21 @@ public class Commands {
      */
     public static Product createProduct(final BlockingSphereClient client, final ProductType productType,
                                         final String name, final String key, final String sku) {
-        //TODO 1.3.1. Define name and slug for the product
+        final LocalizedString localizedName = LocalizedString.of(ENGLISH, name);
+        final LocalizedString randomSlug = LocalizedString.of(ENGLISH, RandomStringUtils.randomAlphanumeric(10));
 
-        //TODO 1.3.2. Create a master variant
+        final ProductVariantDraft masterVariant = ProductVariantDraftBuilder.of()
+                .price(PriceDraft.of(BigDecimal.valueOf(RandomUtils.nextLong(300, 1000)), USD))
+                .sku(sku)
+                .build();
 
-        //TODO 1.3.3. Create a product draft
+        final ProductDraft draft = ProductDraftBuilder.of(productType, localizedName, randomSlug, masterVariant)
+                .key(key)
+                .build();
 
-        //TODO 1.3.4. Create creation command and execute it
-        return null;
+        final ProductCreateCommand createCommand = ProductCreateCommand.of(draft);
+
+        return client.executeBlocking(createCommand);
     }
 
     /**
@@ -162,8 +185,10 @@ public class Commands {
                                                                  final String key,
                                                                  final Long version,
                                                                  final TaxCategory taxCategory){
-       //TODO 1.5.3. Create an product update command and execute it
-        return null;
+       //3.5.3. Create an product update command and execute it
+        final ProductUpdateCommand updateCommand = ProductUpdateCommand.ofKey(key,version,
+                SetTaxCategory.of(taxCategory));
+        return client.executeBlocking(updateCommand);
     }
 
     /**
@@ -185,7 +210,7 @@ public class Commands {
      */
     public static TaxCategory createTaxCategory(final BlockingSphereClient client, final String name, final Double amount){
 
-        TaxRateDraft taxRateDraft = TaxRateDraftBuilder.of("tax rate", amount, true, CountryCode.DE).build();
+        TaxRateDraft taxRateDraft = TaxRateDraftBuilder.of("tax rate", amount, true, CountryCode.US).build();
         List<TaxRateDraft> taxRateDraftList = singletonList(taxRateDraft);
         TaxCategoryDraft taxCategoryDraft = TaxCategoryDraftBuilder.of(name, taxRateDraftList, "My default tax category.").build();
 
@@ -199,8 +224,11 @@ public class Commands {
      * @return the queried or created tax category
      */
     public static TaxCategory queryFirstTaxCategory(final BlockingSphereClient client){
-        //TODO 1.5.1 Query or create a tax category
-        return null;
+        // 3.5.1 Query or create a tax category
+        TaxCategoryQuery request = TaxCategoryQuery.of();
+        return client.executeBlocking(request)
+                .head()
+                .orElseGet(()-> createTaxCategory(client, "US Tax", 0.1));
     }
 
     /**
@@ -265,9 +293,14 @@ public class Commands {
      * @param client CTP client
      * @return Returns queried or created cart
      */
+
+    //3.6.1. Query/create a cart
     public static Cart queryFirstCart(final BlockingSphereClient client){
-        //TODO 1.6.1. Query/create a cart
-        return null;
+        CartQuery request = CartQuery.of();
+        String currencyCode = "USD";
+        return client.executeBlocking(request)
+                     .head()
+                     .orElseGet(()-> createCart(client, currencyCode));
     }
 
     /**
@@ -308,8 +341,11 @@ public class Commands {
      * @return The cart after adding the product
      */
     public static Cart addProductToCart(final BlockingSphereClient client, final String productId, final Cart cart, final Long quantity){
-        //TODO 1.7. Add product to a cart
-        return null;
+        //3.7. Add product to a cart
+        final int masterVariantId = 1;
+        final AddLineItem updateAction = AddLineItem.of(productId, masterVariantId, quantity);
+        CartUpdateCommand request = CartUpdateCommand.of(cart, updateAction);
+        return client.executeBlocking(request);
     }
 
     /**
@@ -320,8 +356,10 @@ public class Commands {
      * @return The cart after adding the shipping address
      */
     public static Cart setShippingAddress(final BlockingSphereClient client, final Address address, final Cart cart){
-        //TODO 1.8. Create an cart update action to set shipping address, create a command from it, then execute it
-        return null;
+        //3.8. Create an cart update action to set shipping address, create a command from it, then execute it
+        SetShippingAddress action= SetShippingAddress.of(address);
+        CartUpdateCommand request = CartUpdateCommand.of(cart, action);
+        return client.executeBlocking(request);
     }
 
     /**
@@ -331,7 +369,8 @@ public class Commands {
      * @return the created order
      */
     public static Order createOrderFromCart(final BlockingSphereClient client, final Cart cart){
-        //TODO 1.9. Create the command and execute it
+        //TODO 3.9. Create the command and execute it
+
         return null;
     }
 
