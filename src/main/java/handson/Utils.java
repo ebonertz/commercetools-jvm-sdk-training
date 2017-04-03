@@ -34,6 +34,16 @@ class Utils {
         final String clientId = prop.getProperty("clientId");
         final String clientSecret = prop.getProperty("clientSecret");
 
-        return SphereClientConfig.of(projectKey, clientId, clientSecret);
+        // For the US, uncomment following lines
+        // final String authUrl = prop.getProperty("authUrl");
+        // final String apiUrl = prop.getProperty("apiUrl");
+
+        //  final SphereClientConfig clientConfig = SphereClientConfig.of( projectKey, clientId, clientSecret, authUrl, apiUrl);
+
+        final SphereClientConfig clientConfig = SphereClientConfig.of(  projectKey,
+                                                                        clientId,
+                                                                        clientSecret);
+
+        return clientConfig;
     }
 }
